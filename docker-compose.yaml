@@ -1,0 +1,55 @@
+version: "2.4"
+services:
+  keycloak:
+    image: jboss/keycloak:13.0.0
+    command: [
+        "-b",
+        "0.0.0.0",
+        "-Dkeycloak.migration.action=import",
+        "-Dkeycloak.migration.provider=dir",
+        "-Dkeycloak.migration.dir=/tmp/dump",
+        "-Dkeycloak.migration.strategy=OVERWRITE_EXISTING"
+    ]
+    environment:
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin
+      KEYCLOAK_FRONTEND_URL: http://localhost:8180/auth
+    ports:
+      - 8180:8080
+      - 8543:8443
+    volumes:
+      - ./docker/keycloak/dump:/tmp/dump
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/auth/" ]
+      start_period: 30s
+      interval: 20s
+      timeout: 1s
+      retries: 5
+
+  api:
+    build: .
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+    links:
+      - keycloak
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  envoy:
+    image: envoyproxy/envoy-alpine:v1.18-latest
+    environment:
+      ENVOY_UID: 0
+    ports:
+      - 80:8000
+      - 9901:9901
+    volumes:
+      - ./docker/envoy/envoy.yaml:/etc/envoy/envoy.yaml
+    links:
+      - keycloak
+      - api
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      api:
+        condition: service_started

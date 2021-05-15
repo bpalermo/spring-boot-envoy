@@ -1,0 +1,32 @@
+{
+  "realm": "admin",
+  "users": [
+    {
+      "id": "e31332f0-b244-4ae0-b527-1de2407489b2",
+      "createdTimestamp": 1621123580144,
+      "username": "admin",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin@gmail.com",
+      "credentials": [
+        {
+          "id": "4d873093-e2dc-4843-9fb8-acdf899e877e",
+          "type": "password",
+          "createdDate": 1621123587000,
+          "secretData": "{\"value\":\"34Pezew+nOTRyOGywjrIkZr3LR6TOntu5Y0UODG3ML2bMOrjzJwMCgRpoiNQiLV2EPGw8YS7NcuP4svcjrH8zA==\",\"salt\":\"bSCDzMazBfWGx3Q+nKFEow==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
+        }
+      ],
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "realmRoles": [
+        "default-roles-admin"
+      ],
+      "notBefore": 0,
+      "groups": []
+    }
+  ]
+}

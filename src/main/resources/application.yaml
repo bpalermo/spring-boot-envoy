@@ -1,0 +1,21 @@
+server:
+  port: 8080
+  error:
+    whitelabel:
+      enabled: false
+
+management:
+  health:
+    probes:
+      enabled: true
+  endpoints:
+    jmx:
+      exposure:
+        exclude: "*"
+    web:
+      base-path: /_/_/
+      exposure:
+        include: "*"
+
+app:
+  hello: Hello World

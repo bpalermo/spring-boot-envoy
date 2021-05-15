@@ -1,0 +1,118 @@
+node:
+  cluster: poc
+
+admin:
+  access_log_path: /dev/null
+  address:
+    socket_address: { address: 0.0.0.0, port_value: 9901 }
+
+static_resources:
+  listeners:
+    - name: http
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 8000 }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                codec_type: AUTO
+                stat_prefix: ingress_http
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: default
+                      domains:
+                        - "*"
+                      routes:
+                        - match: { prefix: "/" }
+                          route: { cluster: local_service }
+                http_filters:
+                  - name: envoy.filters.http.jwt_authn
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                      providers:
+                        keycloak_user:
+                          issuer: http://localhost:8180/auth/realms/test
+                          remote_jwks:
+                            http_uri:
+                              uri: http://keycloak:8080/auth/realms/test/protocol/openid-connect/certs
+                              cluster: keycloak
+                              timeout: 1s
+                            cache_duration:
+                              seconds: 30
+                          forward: false
+                          forward_payload_header: x-jwt-payload
+                        keycloak_admin:
+                          issuer: http://localhost:8180/auth/realms/admin
+                          remote_jwks:
+                            http_uri:
+                              uri: http://keycloak:8080/auth/realms/admin/protocol/openid-connect/certs
+                              cluster: keycloak
+                              timeout: 1s
+                            cache_duration:
+                              seconds: 30
+                          forward: false
+                          forward_payload_header: x-jwt-payload
+                      rules:
+                        - match:
+                            prefix: /_/_/health/
+                        - match:
+                            prefix: /admin/
+                          requires:
+                            provider_name: keycloak_admin
+                        - match:
+                            prefix: /
+                          requires:
+                            provider_name: keycloak_user
+                      bypass_cors_preflight: true
+                  - name: envoy.filters.http.router
+
+  clusters:
+    - name: keycloak
+      connect_timeout: 0.25s
+      type: STRICT_DNS
+      # Comment out the following line to test on v6 networks
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      health_checks:
+        - timeout: 1s
+          interval: 5s
+          interval_jitter: 1s
+          unhealthy_threshold: 1
+          healthy_threshold: 1
+          http_health_check:
+            path: "/auth/"
+      load_assignment:
+        cluster_name: keycloak
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: keycloak
+                      port_value: 8080
+
+    - name: local_service
+      connect_timeout: 0.25s
+      type: STRICT_DNS
+      # Comment out the following line to test on v6 networks
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      health_checks:
+        - timeout: 1s
+          interval: 10s
+          interval_jitter: 1s
+          unhealthy_threshold: 1
+          healthy_threshold: 1
+          http_health_check:
+            path: "/_/_/health/liveness"
+      load_assignment:
+        cluster_name: local_service
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: api
+                      port_value: 8080

@@ -1,0 +1,4 @@
+logging:
+  level:
+    org.keycloak: DEBUG
+    org.springframework.security: DEBUG
